@@ -58,6 +58,20 @@ def _strip_id(doc: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     return clean
 
 
+def _find_user_by_login_email(collection: str, email: str) -> Optional[Dict[str, Any]]:
+    """Match stored email: signups use lowercase; fall back to exact strip for legacy rows."""
+    raw = (email or "").strip()
+    if not raw:
+        return None
+    lowered = raw.lower()
+    c = _strip_id(get_collection(collection).find_one({"email": lowered}))
+    if c:
+        return c
+    if raw != lowered:
+        return _strip_id(get_collection(collection).find_one({"email": raw}))
+    return None
+
+
 def _run_with_mongo_retry(fn: Callable[[], T], *, attempts: int = 4, base_delay_sec: float = 0.35) -> T:
     """
     Retry transient Mongo connectivity errors so brief Atlas hiccups don't fail user operations.
@@ -116,7 +130,7 @@ def _lawyer_public(l: Dict[str, Any]) -> Dict[str, Any]:
 
 # --- Citizens ---
 def verify_citizen_login(email: str, password: str) -> Optional[Dict[str, Any]]:
-    c = _strip_id(get_collection("citizens").find_one({"email": email}))
+    c = _find_user_by_login_email("citizens", email)
     if not c or not verify_password(password, c.get("password_hash", "")):
         return None
     return _citizen_public(c)
@@ -185,7 +199,7 @@ def delete_citizen_by_id(user_id: str) -> bool:
 
 # --- Lawyers ---
 def verify_lawyer_login(email: str, password: str) -> Optional[Dict[str, Any]]:
-    l = _strip_id(get_collection("lawyers").find_one({"email": email}))
+    l = _find_user_by_login_email("lawyers", email)
     if not l or not verify_password(password, l.get("password_hash", "")):
         return None
     return _lawyer_public(l)
@@ -380,7 +394,7 @@ def save_lawyer_client_entry(row_id: int, payload: Dict[str, Any]) -> None:
 
 # --- Admin users / settings ---
 def verify_admin_login(email: str, password: str) -> Optional[Dict[str, Any]]:
-    a = _strip_id(get_collection("admin_users").find_one({"email": email}))
+    a = _find_user_by_login_email("admin_users", email)
     if not a or not verify_password(password, a.get("password_hash", "")):
         return None
     return {"id": a.get("id", "admin-1"), "name": a.get("name", "Admin User"), "email": a.get("email", ""), "role": "Admin", "userType": "admin"}

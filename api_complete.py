@@ -321,6 +321,7 @@ class QuestionRequest(BaseModel):
     session_id: Optional[str] = ""
     user_id: Optional[str] = ""
     user_type: Optional[str] = ""
+    language: Optional[str] = "en"  # "en" for English, "ur" for Urdu
 
 
 def _should_show_sources_for_question(question: str, references: List[str]) -> bool:
@@ -851,8 +852,24 @@ async def chat(request: QuestionRequest):
                 print(f"Warning: Domain classification error: {e}")
         
         # Step 3.5: Handle greetings with friendly response (skip RAG)
+        _lang = (request.language or "en").lower().strip()
+        _is_urdu = _lang == "ur"
+
         if is_greeting:
-            welcome_message = """I'm here to help with criminal law matters! I can assist you with:
+            if _is_urdu:
+                welcome_message = """میں فوجداری قانون کے معاملات میں مدد کے لیے یہاں ہوں! میں آپ کی مدد کر سکتا ہوں:
+
+۱) ایف آئی آر (فرسٹ انفارمیشن رپورٹ) - درج کرانے کا طریقہ اور طریقہ کار
+۲) ضمانت - اقسام، شرائط، اور درخواست کا عمل
+۳) اپیل - فوجداری اپیل اور طریقہ کار
+۴) ریمانڈ - حراست اور ضمانت ریمانڈ طریقہ کار
+۵) آئینی حقوق - فوجداری مقدمات میں بنیادی حقوق
+۶) عدالتی طریقہ کار - فوجداری مقدمے کے طریقہ کار
+۷) قانون کی دفعات - پاکستان پینل کوڈ اور دیگر متعلقہ قوانین
+
+براہ کرم مجھ سے کوئی بھی مخصوص قانونی معاملہ پوچھیں۔ میں دستاویزات تیار کرنے اور مقدمے کے تجزیے میں بھی مدد کر سکتا ہوں۔"""
+            else:
+                welcome_message = """I'm here to help with criminal law matters! I can assist you with:
 
 1) FIR (First Information Report) - Filing and procedures
 2) Bail - Types, conditions, and application process
@@ -863,7 +880,7 @@ async def chat(request: QuestionRequest):
 7) Sections of Law - IPC, CrPC, and other relevant laws
 
 Please ask me about any specific legal concern you have. I can also help with document generation and case analysis."""
-            
+
             return {
                 "question": original_question,
                 "answer": welcome_message,
@@ -875,7 +892,7 @@ Please ask me about any specific legal concern you have. I can also help with do
                 "formatted": False,
                 "is_greeting": True
             }
-        
+
         # Step 4: Build conversational context (multi-turn memory: client + DB)
         contextual_question = normalized_question
         db_history: List[Dict[str, str]] = []
@@ -979,6 +996,15 @@ Please ask me about any specific legal concern you have. I can also help with do
                 )
             except Exception as e:
                 print(f"Warning: DB chat message write error (user): {e}")
+
+        # Inject language instruction so the model responds in the user's preferred language.
+        if _is_urdu:
+            contextual_question = (
+                contextual_question
+                + "\n\n[LANGUAGE INSTRUCTION: Respond entirely in clear, formal Urdu (اردو) script. "
+                "Keep legal citations, section numbers, and case references in their original form "
+                "(e.g., Section 302 PPC, Article 10-A). After any quoted law text provide an Urdu explanation.]"
+            )
 
         # Step 5: Generate answer
         result = pipeline.generate_answer(

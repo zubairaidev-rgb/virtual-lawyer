@@ -2,43 +2,45 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Shield, Home, BarChart3, Users, Settings, LogOut, FileText, Brain } from "lucide-react"
+import { Shield, Home, BarChart3, Users, Settings, LogOut, FileText, Brain, Languages } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useLanguage } from "@/lib/language"
 
 export function Sidebar({ userType }: { userType: "citizen" | "lawyer" | "admin" }) {
   const pathname = usePathname()
   const router = useRouter()
+  const { t, toggleLanguage } = useLanguage()
 
   const getMenuItems = () => {
-    const baseItems = [{ label: "Dashboard", href: `/${userType}`, icon: Home }]
+    const baseItems = [{ label: t("nav.dashboard"), href: `/${userType}`, icon: Home }]
 
     if (userType === "citizen") {
       return [
         ...baseItems,
-        { label: "AI Assistant", href: `/${userType}/chatbot`, icon: Brain },
-        { label: "My Cases", href: `/${userType}/cases`, icon: FileText },
-        { label: "Documents", href: `/${userType}/documents`, icon: FileText },
-        { label: "Find Lawyers", href: `/${userType}/lawyers`, icon: Users },
+        { label: t("nav.ai_assistant"), href: `/${userType}/chatbot`, icon: Brain },
+        { label: t("nav.my_cases"), href: `/${userType}/cases`, icon: FileText },
+        { label: t("nav.documents"), href: `/${userType}/documents`, icon: FileText },
+        { label: t("nav.find_lawyers"), href: `/${userType}/lawyers`, icon: Users },
       ]
     }
 
     if (userType === "lawyer") {
-      return [ 
+      return [
         ...baseItems,
-      { label: "AI Assistant", href: `/${userType}/chatbot`, icon: Brain },
-        { label: "My Clients", href: `/${userType}/clients`, icon: Users },
-        { label: "Cases", href: `/${userType}/cases`, icon: FileText },
-        { label: "Analytics", href: `/${userType}/analytics`, icon: BarChart3 },
-        { label: "Documents", href: `/${userType}/documents`, icon: FileText },
+        { label: t("nav.ai_assistant"), href: `/${userType}/chatbot`, icon: Brain },
+        { label: t("nav.my_clients"), href: `/${userType}/clients`, icon: Users },
+        { label: t("nav.cases"), href: `/${userType}/cases`, icon: FileText },
+        { label: t("nav.analytics"), href: `/${userType}/analytics`, icon: BarChart3 },
+        { label: t("nav.documents"), href: `/${userType}/documents`, icon: FileText },
       ]
     }
 
     return [
       ...baseItems,
-      { label: "Users", href: `/${userType}/users`, icon: Users },
-      { label: "Lawyers", href: `/${userType}/lawyers`, icon: Users },
-      { label: "Analytics", href: `/${userType}/analytics`, icon: BarChart3 },
-      { label: "Settings", href: `/${userType}/settings`, icon: Settings },
+      { label: t("nav.users"), href: `/${userType}/users`, icon: Users },
+      { label: t("nav.lawyers"), href: `/${userType}/lawyers`, icon: Users },
+      { label: t("nav.analytics"), href: `/${userType}/analytics`, icon: BarChart3 },
+      { label: t("nav.settings"), href: `/${userType}/settings`, icon: Settings },
     ]
   }
 
@@ -95,13 +97,23 @@ export function Sidebar({ userType }: { userType: "citizen" | "lawyer" | "admin"
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-sidebar-border/50">
+      <div className="p-4 border-t border-sidebar-border/50 space-y-1">
+        {/* Language Toggle */}
+        <button
+          onClick={toggleLanguage}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all duration-300 group"
+          title="Toggle language / زبان تبدیل کریں"
+        >
+          <Languages size={18} />
+          <span className="text-sm font-medium">{t("nav.switch_lang")}</span>
+        </button>
+
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all duration-300 group"
         >
           <LogOut size={18} />
-          <span className="text-sm font-medium">Logout</span>
+          <span className="text-sm font-medium">{t("nav.logout")}</span>
         </button>
       </div>
     </aside>

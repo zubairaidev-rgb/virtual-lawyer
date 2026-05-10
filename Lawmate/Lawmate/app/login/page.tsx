@@ -44,7 +44,7 @@ export default function LoginPage() {
       try {
         const { login } = await import("@/lib/services/auth")
         const response = await login({
-          email,
+          email: email.trim().toLowerCase(),
           password,
           userType: userType as "citizen" | "lawyer" | "admin"
         })

@@ -19,6 +19,7 @@ export type ChatSessionMeta = {
   session_id?: string;
   user_id?: string;
   user_type?: string;
+  language?: string;
 };
 
 export async function sendChat(
@@ -40,13 +41,14 @@ export async function sendChat(
       formatted?: boolean;
       context_used?: boolean;
       retrieved_sources?: number;
-    }>("/api/chat", { 
+    }>("/api/chat", {
       question,
       use_formatter,
       history,
       session_id: session.session_id || "",
       user_id: session.user_id || "",
-      user_type: session.user_type || ""
+      user_type: session.user_type || "",
+      language: session.language || "en",
     });
     
     // Map backend response to frontend format

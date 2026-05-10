@@ -21,6 +21,7 @@ import {
   CheckCircle2,
 } from "lucide-react"
 import { sendChat } from "@/lib/services/chat"
+import { useLanguage } from "@/lib/language"
 
 interface Message {
   id: string
@@ -43,6 +44,7 @@ const DEFAULT_ASSISTANT_MESSAGE: Message = {
 }
 
 export default function LawyerChatbotPage() {
+  const { language, t } = useLanguage()
   const [messages, setMessages] = useState<Message[]>([DEFAULT_ASSISTANT_MESSAGE])
 
   const [input, setInput] = useState("")
@@ -147,6 +149,7 @@ export default function LawyerChatbotPage() {
         session_id: sessionId,
         user_id: userId,
         user_type: userType,
+        language,
       })
       
       // Convert reference objects to display strings
@@ -442,7 +445,7 @@ export default function LawyerChatbotPage() {
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask drafting tips, citations, bail strategy, remand objections..."
+              placeholder={t("chat.placeholder_lawyer")}
               disabled={loading}
               className="flex-1 bg-background/50 border-border/50 focus:border-primary/50 rounded-full"
             />
