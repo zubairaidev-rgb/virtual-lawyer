@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
+import { useLanguage } from "@/lib/language"
 
 export interface LawyerData {
   id: string
@@ -33,6 +34,7 @@ interface LawyerCardPremiumProps {
 }
 
 export function LawyerCardPremium({ lawyer, onConnect, onViewProfile, delay = 0 }: LawyerCardPremiumProps) {
+  const { t } = useLanguage()
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -63,7 +65,7 @@ export function LawyerCardPremium({ lawyer, onConnect, onViewProfile, delay = 0 
             >
               <Badge className="bg-primary/10 text-primary border-primary/30 gap-1">
                 <CheckCircle2 className="w-3 h-3" />
-                Verified
+                {t("lawyers.verified")}
               </Badge>
             </motion.div>
           </div>
@@ -78,7 +80,7 @@ export function LawyerCardPremium({ lawyer, onConnect, onViewProfile, delay = 0 
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 border border-green-500/30"
             >
               <div className="w-2 h-2 rounded-full bg-green-500" />
-              <span className="text-xs font-medium text-green-700 dark:text-green-400">Available</span>
+              <span className="text-xs font-medium text-green-700 dark:text-green-400">{t("lawyers.available")}</span>
             </motion.div>
           </div>
         )}
@@ -165,30 +167,30 @@ export function LawyerCardPremium({ lawyer, onConnect, onViewProfile, delay = 0 
         <div className="grid grid-cols-3 gap-3 mb-4 p-3 rounded-lg bg-muted/30 border border-border/50">
           <div className="text-center">
             <div className="text-lg font-bold text-primary">{lawyer.casesWon}+</div>
-            <div className="text-xs text-muted-foreground">Cases Won</div>
+            <div className="text-xs text-muted-foreground">{t("lawyers.cases_won")}</div>
           </div>
           <div className="text-center border-x border-border/50">
             <div className="text-lg font-bold text-accent">{lawyer.experience}y</div>
-            <div className="text-xs text-muted-foreground">Experience</div>
+            <div className="text-xs text-muted-foreground">{t("lawyers.experience_label")}</div>
           </div>
           <div className="text-center">
             <div className="text-lg font-bold text-green-600 dark:text-green-400">{lawyer.successRate}%</div>
-            <div className="text-xs text-muted-foreground">Success</div>
+            <div className="text-xs text-muted-foreground">{t("lawyers.success")}</div>
           </div>
         </div>
 
         {/* Additional Info */}
         <div className="space-y-2 mb-4 text-xs">
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Response Time:</span>
+            <span className="text-muted-foreground">{t("lawyers.response_time")}</span>
             <span className="font-semibold text-foreground">{lawyer.responseTime}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Hourly Rate:</span>
+            <span className="text-muted-foreground">{t("lawyers.hourly_rate")}</span>
             <span className="font-semibold text-primary">${lawyer.hourlyRate}/hr</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">Languages:</span>
+            <span className="text-muted-foreground">{t("lawyers.languages")}</span>
             <span className="font-medium text-foreground">{lawyer.languages.join(", ")}</span>
           </div>
         </div>
@@ -202,7 +204,7 @@ export function LawyerCardPremium({ lawyer, onConnect, onViewProfile, delay = 0 
             onClick={onViewProfile}
           >
             <MessageSquare className="w-4 h-4" />
-            Message
+            {t("lawyers.message")}
           </Button>
           <Button
             size="sm"
@@ -210,7 +212,7 @@ export function LawyerCardPremium({ lawyer, onConnect, onViewProfile, delay = 0 
             onClick={onConnect}
           >
             <Video className="w-4 h-4" />
-            Consult
+            {t("lawyers.consult")}
           </Button>
         </div>
 
@@ -221,7 +223,7 @@ export function LawyerCardPremium({ lawyer, onConnect, onViewProfile, delay = 0 
           whileHover={{ scale: 1.02 }}
         >
           <Calendar className="w-3.5 h-3.5" />
-          View Full Profile & Availability
+          {t("lawyers.view_profile")}
           <motion.span
             className="inline-block"
             initial={{ x: 0 }}

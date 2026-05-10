@@ -40,6 +40,7 @@ import {
   type TemplateInfo,
 } from "@/lib/services/documents"
 import { getDocumentApiRole } from "@/lib/auth-user"
+import { useLanguage } from "@/lib/language"
 
 interface UploadedDocument {
   doc_id: string
@@ -62,6 +63,7 @@ interface GeneratedDocument {
 }
 
 export default function DocumentsPage() {
+  const { t } = useLanguage()
   const [isLoaded, setIsLoaded] = useState(false)
   const [activeTab, setActiveTab] = useState<"uploaded" | "generated" | "templates" | "analyze">("uploaded")
   
@@ -393,8 +395,8 @@ export default function DocumentsPage() {
           >
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               <div>
-                <h1 className="text-4xl font-bold text-foreground mb-2">My Documents</h1>
-                <p className="text-muted-foreground">Upload, analyze, and generate legal documents</p>
+                <h1 className="text-4xl font-bold text-foreground mb-2">{t("docs.title")}</h1>
+                <p className="text-muted-foreground">{t("docs.subtitle")}</p>
               </div>
               <div className="flex gap-3">
                 <Button
@@ -403,14 +405,14 @@ export default function DocumentsPage() {
                   className="bg-card/50 backdrop-blur border-border/50"
                 >
                   <FileSearch className="w-4 h-4 mr-2" />
-                  Browse Templates
+                  {t("docs.browse_templates")}
                 </Button>
                 <Button
                   onClick={() => setActiveTab("uploaded")}
                   className="gradient-primary text-primary-foreground border-0"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Upload Document
+                  {t("docs.upload_btn")}
                 </Button>
               </div>
             </div>
@@ -422,10 +424,10 @@ export default function DocumentsPage() {
             style={{ transitionDelay: "100ms" }}
           >
             {[
-              { label: "Total Documents", value: stats.total, icon: FileText, color: "from-primary to-accent" },
-              { label: "Uploaded", value: stats.uploaded, icon: Upload, color: "from-accent to-secondary" },
-              { label: "Generated", value: stats.generated, icon: FileEdit, color: "from-secondary to-primary" },
-              { label: "Ready", value: stats.ready, icon: CheckCircle2, color: "from-primary to-accent" },
+              { labelKey: "docs.total", value: stats.total, icon: FileText, color: "from-primary to-accent" },
+              { labelKey: "docs.uploaded", value: stats.uploaded, icon: Upload, color: "from-accent to-secondary" },
+              { labelKey: "docs.generated", value: stats.generated, icon: FileEdit, color: "from-secondary to-primary" },
+              { labelKey: "docs.ready", value: stats.ready, icon: CheckCircle2, color: "from-primary to-accent" },
             ].map((stat, i) => (
               <Card
                 key={i}
@@ -437,7 +439,7 @@ export default function DocumentsPage() {
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">{stat.label}</p>
+                    <p className="text-sm text-muted-foreground">{t(stat.labelKey)}</p>
                     <p className="text-3xl font-bold text-foreground mt-2">{stat.value}</p>
                   </div>
                   <div
@@ -471,10 +473,10 @@ export default function DocumentsPage() {
           {/* Tabs */}
           <div className="mb-6 flex gap-2 border-b border-border/50">
             {[
-              { id: "uploaded", label: "Uploaded Documents", icon: Upload },
-              { id: "generated", label: "Generated Documents", icon: FileEdit },
-              { id: "templates", label: "Templates", icon: FileText },
-              { id: "analyze", label: "Analyze Document", icon: Brain },
+              { id: "uploaded", labelKey: "docs.tab_uploaded", icon: Upload },
+              { id: "generated", labelKey: "docs.tab_generated", icon: FileEdit },
+              { id: "templates", labelKey: "docs.tab_templates", icon: FileText },
+              { id: "analyze", labelKey: "docs.tab_analyze", icon: Brain },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -486,7 +488,7 @@ export default function DocumentsPage() {
                 }`}
               >
                 <tab.icon className="w-4 h-4" />
-                {tab.label}
+                {t(tab.labelKey)}
               </button>
             ))}
           </div>
@@ -500,11 +502,11 @@ export default function DocumentsPage() {
                 <Card className="p-6 border border-border/50">
                   <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                     <Upload className="w-5 h-5 text-primary" />
-                    Upload Document
+                    {t("docs.upload_section")}
                   </h2>
                   <div className="space-y-4">
                     <div>
-                      <label className="text-sm font-medium mb-2 block">Select PDF or DOCX file</label>
+                      <label className="text-sm font-medium mb-2 block">{t("docs.select_file")}</label>
                       <Input
                         type="file"
                         accept=".pdf,.docx"
@@ -528,7 +530,7 @@ export default function DocumentsPage() {
                       ) : (
                         <>
                           <Upload className="w-4 h-4 mr-2" />
-                          Upload Document
+                          {t("docs.upload_btn")}
                         </>
                       )}
                     </Button>
@@ -540,7 +542,7 @@ export default function DocumentsPage() {
                   {uploadedDocs.length === 0 ? (
                     <Card className="p-12 text-center border border-border/50">
                       <FileText className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-                      <p className="text-muted-foreground">No documents uploaded yet</p>
+                      <p className="text-muted-foreground">{t("docs.none_uploaded")}</p>
                     </Card>
                   ) : (
                     uploadedDocs.map((doc, idx) => (
@@ -623,7 +625,7 @@ export default function DocumentsPage() {
                 {generatedDocs.length === 0 ? (
                   <Card className="p-12 text-center border border-border/50">
                     <FileEdit className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-                    <p className="text-muted-foreground mb-4">No documents generated yet</p>
+                    <p className="text-muted-foreground mb-4">{t("docs.none_generated")}</p>
                     <Button
                       onClick={() => setActiveTab("templates")}
                       className="gradient-primary text-primary-foreground"
@@ -714,11 +716,11 @@ export default function DocumentsPage() {
                 <Card className="p-6 border border-border/50">
                   <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-primary" />
-                    AI Document Type Suggestion
+                    {t("docs.ai_suggest")}
                   </h2>
                   <div className="space-y-4">
                     <div>
-                      <label className="text-sm font-medium mb-2 block">Enter Case Facts (JSON format or key-value pairs)</label>
+                      <label className="text-sm font-medium mb-2 block">{t("docs.enter_facts")}</label>
                       <Textarea
                         value={JSON.stringify(suggestionFacts, null, 2)}
                         onChange={(e) => {
@@ -749,7 +751,7 @@ export default function DocumentsPage() {
                       ) : (
                         <>
                           <Sparkles className="w-4 h-4 mr-2" />
-                          Get Suggestions
+                          {t("docs.get_suggestions")}
                         </>
                       )}
                     </Button>
@@ -792,7 +794,7 @@ export default function DocumentsPage() {
                 <div>
                   <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                     <FileText className="w-5 h-5 text-primary" />
-                    Available Templates
+                    {t("docs.available_templates")}
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {templates.length === 0 ? (
@@ -832,7 +834,7 @@ export default function DocumentsPage() {
                           )}
                           {(template.placeholder_count || (template.placeholders && template.placeholders.length)) && (
                             <p className="text-xs text-muted-foreground">
-                              {template.placeholder_count || template.placeholders.length} fields required
+                              {template.placeholder_count || template.placeholders.length} {t("docs.fields_required")}
                             </p>
                           )}
                         </Card>
@@ -884,7 +886,7 @@ export default function DocumentsPage() {
                       <div className="mb-6">
                         <h4 className="font-semibold mb-3 flex items-center gap-2">
                           <FileCheck className="w-4 h-4" />
-                          Required Information
+                          {t("docs.req_info")}
                         </h4>
                         <div className="space-y-2 max-h-48 overflow-y-auto">
                           {templateDetails.placeholders.map((placeholder: string) => {
@@ -928,7 +930,7 @@ export default function DocumentsPage() {
                       <div className="flex items-center justify-between mb-4">
                         <h4 className="font-semibold flex items-center gap-2">
                           <FileEdit className="w-4 h-4" />
-                          Fill Document Information
+                          {t("docs.fill_info")}
                         </h4>
                         <Button
                           variant="ghost"
@@ -940,7 +942,7 @@ export default function DocumentsPage() {
                             setJsonError(null)
                           }}
                         >
-                          Reset Form
+                          {t("docs.reset_form")}
                         </Button>
                       </div>
                       
@@ -1034,12 +1036,12 @@ export default function DocumentsPage() {
                       {loading ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Generating Document...
+                          {t("docs.generating")}
                         </>
                       ) : (
                         <>
                           <FileEdit className="w-4 h-4 mr-2" />
-                          Generate Document
+                          {t("docs.generate")}
                         </>
                       )}
                     </Button>

@@ -155,6 +155,7 @@ export type CitizenQuickCaseAnalysisRequest = {
   key_question?: string;
   desired_outcome?: string;
   child_involved?: boolean;
+  language?: string;
 };
 
 export type CitizenQuickCaseAnalysisResponse = {

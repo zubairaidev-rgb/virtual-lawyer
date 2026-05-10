@@ -34,18 +34,21 @@ interface Message {
 
 const LAWYER_CHAT_STORAGE_KEY = "lawmate_chat_lawyer_v1"
 const LAWYER_CHAT_SESSION_KEY = "lawmate_chat_lawyer_session_v1"
-const DEFAULT_ASSISTANT_MESSAGE: Message = {
-  id: "1",
-  role: "assistant",
-  content:
-    "I'm here to support your legal workflow. Ask in plain language, and I will provide practical legal analysis and strategy guidance.",
-  timestamp: new Date(),
-  sources: [],
-}
 
 export default function LawyerChatbotPage() {
   const { language, t } = useLanguage()
-  const [messages, setMessages] = useState<Message[]>([DEFAULT_ASSISTANT_MESSAGE])
+
+  const getWelcomeMessage = (): Message => ({
+    id: "1",
+    role: "assistant",
+    content: language === "ur"
+      ? "میں آپ کے قانونی کام میں مدد کے لیے یہاں ہوں۔ سادہ زبان میں پوچھیں، اور میں عملی قانونی تجزیہ اور حکمت عملی فراہم کروں گا۔"
+      : "I'm here to support your legal workflow. Ask in plain language, and I will provide practical legal analysis and strategy guidance.",
+    timestamp: new Date(),
+    sources: [],
+  })
+
+  const [messages, setMessages] = useState<Message[]>([getWelcomeMessage()])
 
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
@@ -80,6 +83,16 @@ export default function LawyerChatbotPage() {
       console.warn("Failed to restore lawyer chat history:", error)
     }
   }, [])
+
+  useEffect(() => {
+    setMessages((prev) => {
+      if (prev.length === 1 && prev[0].id === "1") {
+        return [getWelcomeMessage()]
+      }
+      return prev
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language])
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -268,14 +281,14 @@ export default function LawyerChatbotPage() {
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold text-foreground">Legal AI Assistant</h1>
+                <h1 className="text-2xl font-bold text-foreground">{t("chat.title")}</h1>
                 <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/30">
                   <Sparkles className="w-3 h-3 text-primary" />
-                  <span className="text-xs font-medium text-primary">AI Powered</span>
+                  <span className="text-xs font-medium text-primary">{t("chat.ai_powered")}</span>
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">
-                Strategy • Drafting • Quick Answers • Section References
+                {t("chat.subtitle")}
               </p>
             </div>
           </div>
@@ -402,7 +415,7 @@ export default function LawyerChatbotPage() {
                         ></div>
                       ))}
                     </div>
-                    <span className="text-sm text-muted-foreground">Thinking...</span>
+                    <span className="text-sm text-muted-foreground">{t("chat.thinking")}</span>
                   </div>
                 </Card>
               </div>
@@ -416,7 +429,7 @@ export default function LawyerChatbotPage() {
           <div className="px-8 py-6 bg-gradient-to-t from-card/40 to-transparent border-t border-border/30">
             <p className="text-xs font-semibold text-muted-foreground mb-4 flex items-center gap-1">
               <Lightbulb className="w-4 h-4" />
-              Suggested Questions
+              {t("chat.suggested")}
             </p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
@@ -459,7 +472,7 @@ export default function LawyerChatbotPage() {
           </form>
           <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
             <AlertCircle className="w-3 h-3" />
-            AI responses are informational. Consult qualified lawyers for legal advice.
+            {t("chat.disclaimer")}
           </p>
         </div>
       </main>

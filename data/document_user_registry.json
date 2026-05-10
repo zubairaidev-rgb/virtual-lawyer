@@ -1,0 +1,24 @@
+[
+  {
+    "doc_id": "sample-ahmed-fir-001",
+    "file_name": "FIR_Summary_Gulberg_PS_Lahore.pdf",
+    "chunks_count": 14,
+    "text_length": 9200,
+    "status": "success",
+    "uploaded_at": "2026-04-01T10:15:00",
+    "owner_email": "ahmed.khan@lawmate.pk",
+    "owner_role": "citizen",
+    "is_sample": true
+  },
+  {
+    "doc_id": "sample-fatima-vakalat-001",
+    "file_name": "Vakalatnama_LHC_Bail_Matter.docx",
+    "chunks_count": 6,
+    "text_length": 4100,
+    "status": "success",
+    "uploaded_at": "2026-03-28T14:30:00",
+    "owner_email": "fatima.noor@lawmate.pk",
+    "owner_role": "lawyer",
+    "is_sample": true
+  }
+]

@@ -9,9 +9,11 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { getCitizenCases, type Case } from "@/lib/services/cases"
 import { CaseForm } from "@/components/case-form"
+import { useLanguage } from "@/lib/language"
 
 export default function CitizenCasesPage() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [isLoaded, setIsLoaded] = useState(false)
   const [filterStatus, setFilterStatus] = useState("all")
   const [cases, setCases] = useState<Case[]>([])
@@ -61,8 +63,8 @@ export default function CitizenCasesPage() {
           >
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               <div>
-                <h1 className="text-4xl font-bold text-foreground mb-2">My Cases</h1>
-                <p className="text-muted-foreground">Track all your ongoing and completed criminal cases</p>
+                <h1 className="text-4xl font-bold text-foreground mb-2">{t("cases.title")}</h1>
+                <p className="text-muted-foreground">{t("cases.subtitle")}</p>
               </div>
               <div className="flex gap-3 flex-wrap">
                 <Button 
@@ -70,7 +72,7 @@ export default function CitizenCasesPage() {
                   onClick={() => setShowForm(true)}
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Case
+                  {t("cases.add")}
                 </Button>
               </div>
             </div>
@@ -82,18 +84,24 @@ export default function CitizenCasesPage() {
             style={{ transitionDelay: "100ms" }}
           >
             <div className="flex gap-2 flex-wrap">
-              {["all", "Active", "Hearing Scheduled", "Appeal Filed", "Closed"].map((filter) => (
+              {[
+                { key: "all", label: t("cases.filter_all") },
+                { key: "Active", label: t("cases.filter_active") },
+                { key: "Hearing Scheduled", label: t("cases.filter_hearing") },
+                { key: "Appeal Filed", label: t("cases.filter_appeal") },
+                { key: "Closed", label: t("cases.filter_closed") },
+              ].map((filter) => (
                 <Button
-                  key={filter}
+                  key={filter.key}
                   variant="outline"
-                  onClick={() => setFilterStatus(filter)}
+                  onClick={() => setFilterStatus(filter.key)}
                   className={`transition-all ${
-                    filterStatus === filter
+                    filterStatus === filter.key
                       ? "gradient-primary text-primary-foreground border-0"
                       : "bg-transparent hover:bg-primary/10 border-border/50"
                   }`}
                 >
-                  {filter === "all" ? "All Cases" : filter}
+                  {filter.label}
                 </Button>
               ))}
             </div>
@@ -107,14 +115,14 @@ export default function CitizenCasesPage() {
             {loading ? (
               <div className="flex items-center justify-center p-12">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                <span className="ml-3 text-muted-foreground">Loading cases...</span>
+                <span className="ml-3 text-muted-foreground">{t("cases.loading")}</span>
               </div>
             ) : error ? (
               <Card className="p-6 border border-destructive/50">
                 <div className="flex items-center gap-3 text-destructive">
                   <AlertCircle className="w-5 h-5" />
                   <div>
-                    <p className="font-semibold">Error loading cases</p>
+                    <p className="font-semibold">{t("cases.error_loading")}</p>
                     <p className="text-sm">{error}</p>
                     <Button
                       size="sm"
@@ -122,7 +130,7 @@ export default function CitizenCasesPage() {
                       className="mt-3"
                       onClick={loadCases}
                     >
-                      Retry
+                      {t("cases.retry")}
                     </Button>
                   </div>
                 </div>
@@ -130,11 +138,11 @@ export default function CitizenCasesPage() {
             ) : filteredCases.length === 0 ? (
               <Card className="p-12 text-center border border-border/50">
                 <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                <p className="text-lg font-semibold text-foreground mb-2">No cases found</p>
-                <p className="text-muted-foreground mb-4">You don't have any cases matching this filter.</p>
-                <Button className="gradient-primary text-primary-foreground border-0">
+                <p className="text-lg font-semibold text-foreground mb-2">{t("cases.none_found")}</p>
+                <p className="text-muted-foreground mb-4">{t("cases.none_desc")}</p>
+                <Button className="gradient-primary text-primary-foreground border-0" onClick={() => setShowForm(true)}>
                   <Plus className="w-4 h-4 mr-2" />
-                  Create Your First Case
+                  {t("cases.create_first")}
                 </Button>
               </Card>
             ) : (
@@ -171,26 +179,26 @@ export default function CitizenCasesPage() {
 
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
                             <div>
-                              <span className="text-muted-foreground">Court</span>
+                              <span className="text-muted-foreground">{t("cases.court")}</span>
                               <p className="font-medium text-foreground">{caseItem.court}</p>
                             </div>
                             <div>
-                              <span className="text-muted-foreground">Judge</span>
+                              <span className="text-muted-foreground">{t("cases.judge")}</span>
                               <p className="font-medium text-foreground">{caseItem.judge}</p>
                             </div>
                             <div>
-                              <span className="text-muted-foreground">Documents</span>
+                              <span className="text-muted-foreground">{t("cases.documents")}</span>
                               <p className="font-medium text-foreground">{caseItem.documents_count || 0}</p>
                             </div>
                             <div>
-                              <span className="text-muted-foreground">Lawyer</span>
-                              <p className="font-medium text-foreground">{caseItem.assigned_lawyer || "Not assigned"}</p>
+                              <span className="text-muted-foreground">{t("cases.lawyer")}</span>
+                              <p className="font-medium text-foreground">{caseItem.assigned_lawyer || t("cases.not_assigned")}</p>
                             </div>
                           </div>
 
                           {caseItem.case_summary && (
                             <div className="mb-3 p-3 rounded-lg border border-border/50 bg-card/60">
-                              <p className="text-xs text-muted-foreground mb-1">Case Summary</p>
+                              <p className="text-xs text-muted-foreground mb-1">{t("cases.summary")}</p>
                               <p className="text-sm text-foreground">{caseItem.case_summary}</p>
                             </div>
                           )}

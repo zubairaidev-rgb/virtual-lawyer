@@ -22,6 +22,7 @@ import { PremiumMarketplace } from "@/components/marketplace/premium-marketplace
 import type { LawyerData } from "@/components/marketplace/lawyer-card-premium"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
+import { useLanguage } from "@/lib/language"
 
 const COURTS_BY_CITY: Record<string, string[]> = {
   Karachi: ["Sindh High Court, Karachi", "City Courts Karachi", "District & Sessions Court Karachi South", "Anti-Terrorism Court Karachi"],
@@ -35,6 +36,7 @@ const COURTS_BY_CITY: Record<string, string[]> = {
 }
 
 export default function LawyerDirectoryPage() {
+  const { t } = useLanguage()
   const router = useRouter()
   const [searchTerm, setSearchTerm] = useState("")
   const [expertise, setExpertise] = useState("all")
@@ -148,24 +150,21 @@ export default function LawyerDirectoryPage() {
         <div className="p-8">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground">Find Lawyers</h1>
-            <p className="text-muted-foreground mt-2">Browse and connect with experienced criminal law specialists</p>
+            <h1 className="text-3xl font-bold text-foreground">{t("lawyers.title")}</h1>
+            <p className="text-muted-foreground mt-2">{t("lawyers.subtitle")}</p>
           </div>
 
           {/* Recommendation Engine */}
           <Card className="p-6 border border-border mb-8">
             <div className="flex items-center gap-2 mb-4">
               <Brain className="w-5 h-5 text-primary" />
-              <h2 className="text-xl font-bold text-foreground">Criminal Case Lawyer Recommendation System</h2>
+              <h2 className="text-xl font-bold text-foreground">{t("lawyers.rec_title")}</h2>
             </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              Enter your criminal case details below. The system will rank best-fit lawyers using professional criteria:
-              specialization relevance, location alignment, experience, win-rate performance, urgency readiness, and budget fit.
-            </p>
+            <p className="text-sm text-muted-foreground mb-4">{t("lawyers.rec_desc")}</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <Label htmlFor="case-type">Case Type</Label>
+                <Label htmlFor="case-type">{t("lawyers.case_type")}</Label>
                 <Input
                   id="case-type"
                   placeholder="e.g., Bail, FIR, Appeal, Cyber Crime"
@@ -175,7 +174,7 @@ export default function LawyerDirectoryPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="city-location">City / Preferred Location</Label>
+                <Label htmlFor="city-location">{t("lawyers.city")}</Label>
                 <Select
                   value={selectedCity}
                   onValueChange={(value) => {
@@ -198,7 +197,7 @@ export default function LawyerDirectoryPage() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="hearing-court">Hearing Court (Optional)</Label>
+                <Label htmlFor="hearing-court">{t("lawyers.court")}</Label>
                 {courtInputMode === "dropdown" && selectedCity && selectedCity !== "Other" ? (
                   <>
                     <Select
@@ -265,7 +264,7 @@ export default function LawyerDirectoryPage() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="budget-range">Budget Range</Label>
+                <Label htmlFor="budget-range">{t("lawyers.budget")}</Label>
                 <Select
                   value={form.budget_range || "medium"}
                   onValueChange={(value) => setForm((prev) => ({ ...prev, budget_range: value as "low" | "medium" | "high" }))}
@@ -281,7 +280,7 @@ export default function LawyerDirectoryPage() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="preferred-experience">Preferred minimum experience (years)</Label>
+                <Label htmlFor="preferred-experience">{t("lawyers.experience")}</Label>
                 <Input
                   id="preferred-experience"
                   type="number"
@@ -293,7 +292,7 @@ export default function LawyerDirectoryPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="preferred-language">Preferred language (Optional)</Label>
+                <Label htmlFor="preferred-language">{t("lawyers.language")}</Label>
                 <Input
                   id="preferred-language"
                   placeholder="e.g., English, Urdu"
@@ -306,7 +305,7 @@ export default function LawyerDirectoryPage() {
 
             <div className="mt-3">
               <Label htmlFor="case-description">
-                Case Description <span className="text-destructive">*</span>
+                {t("lawyers.case_desc")}
               </Label>
               <textarea
                 id="case-description"
@@ -323,12 +322,12 @@ export default function LawyerDirectoryPage() {
                 {recommending ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    Generating Recommendations...
+                    {t("lawyers.finding")}
                   </>
                 ) : (
                   <>
                     <Target className="w-4 h-4 mr-2" />
-                    Recommend Best Lawyers
+                    {t("lawyers.find_btn")}
                   </>
                 )}
               </Button>

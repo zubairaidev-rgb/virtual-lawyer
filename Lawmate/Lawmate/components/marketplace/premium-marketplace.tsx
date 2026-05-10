@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useLanguage } from "@/lib/language"
 
 interface PremiumMarketplaceProps {
   lawyers: LawyerData[]
@@ -23,6 +24,7 @@ interface PremiumMarketplaceProps {
 }
 
 export function PremiumMarketplace({ lawyers, onConnect, onViewProfile }: PremiumMarketplaceProps) {
+  const { t } = useLanguage()
   const [searchQuery, setSearchQuery] = useState("")
   const [showFilters, setShowFilters] = useState(false)
   const [selectedSpecializations, setSelectedSpecializations] = useState<string[]>([])
@@ -116,7 +118,7 @@ export function PremiumMarketplace({ lawyers, onConnect, onViewProfile }: Premiu
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search lawyers by name or specialization..."
+            placeholder={t("lawyers.search_ph")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 bg-background/50 border-border/50 focus:border-primary/50"
@@ -131,7 +133,7 @@ export function PremiumMarketplace({ lawyers, onConnect, onViewProfile }: Premiu
             className="gap-2 relative"
           >
             <SlidersHorizontal className="w-4 h-4" />
-            Filters
+            {t("lawyers.filters")}
             {activeFiltersCount > 0 && (
               <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-primary">
                 {activeFiltersCount}
@@ -144,7 +146,7 @@ export function PremiumMarketplace({ lawyers, onConnect, onViewProfile }: Premiu
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="rating">Highest Rated</SelectItem>
+              <SelectItem value="rating">{t("lawyers.highest_rated")}</SelectItem>
               <SelectItem value="price-low">Price: Low to High</SelectItem>
               <SelectItem value="price-high">Price: High to Low</SelectItem>
               <SelectItem value="experience">Most Experienced</SelectItem>
@@ -281,8 +283,8 @@ export function PremiumMarketplace({ lawyers, onConnect, onViewProfile }: Premiu
       {/* Results Count */}
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>
-          Showing <span className="font-semibold text-foreground">{filteredLawyers.length}</span> of{" "}
-          <span className="font-semibold text-foreground">{lawyers.length}</span> lawyers
+          {t("lawyers.showing")} <span className="font-semibold text-foreground">{filteredLawyers.length}</span> {t("lawyers.of")}{" "}
+          <span className="font-semibold text-foreground">{lawyers.length}</span> {t("lawyers.title").toLowerCase()}
         </span>
         {activeFiltersCount > 0 && (
           <span className="text-primary font-medium">{activeFiltersCount} filter(s) active</span>

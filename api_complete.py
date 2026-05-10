@@ -607,6 +607,7 @@ class CitizenQuickCaseRequest(BaseModel):
     custody_status: Optional[str] = "unknown"  # in_custody, not_in_custody, unknown
     case_stage: Optional[str] = ""
     incident_date: Optional[str] = ""
+    language: Optional[str] = "en"  # "en" or "ur"
     incident_location: Optional[str] = ""
     fir_status: Optional[str] = ""
     police_station: Optional[str] = ""
@@ -997,14 +998,25 @@ Please ask me about any specific legal concern you have. I can also help with do
             except Exception as e:
                 print(f"Warning: DB chat message write error (user): {e}")
 
-        # Inject language instruction so the model responds in the user's preferred language.
+        # Auto-detect Urdu: if the question contains Arabic/Urdu script, treat as Urdu regardless of header.
+        def _has_arabic_script(text: str) -> bool:
+            import unicodedata
+            for ch in text:
+                if unicodedata.category(ch) in ('Lo',) and '؀' <= ch <= 'ۿ':
+                    return True
+            return False
+
+        if _has_arabic_script(original_question):
+            _is_urdu = True
+
+        # Inject language instruction BEFORE the question so the model sees it first.
         if _is_urdu:
-            contextual_question = (
-                contextual_question
-                + "\n\n[LANGUAGE INSTRUCTION: Respond entirely in clear, formal Urdu (اردو) script. "
-                "Keep legal citations, section numbers, and case references in their original form "
-                "(e.g., Section 302 PPC, Article 10-A). After any quoted law text provide an Urdu explanation.]"
+            urdu_preamble = (
+                "[SYSTEM: The user has selected URDU language. You MUST respond entirely in Urdu (اردو) script. "
+                "Do NOT respond in English. Provide full legal guidance in Urdu. "
+                "Keep legal section numbers as-is (e.g., Section 302 PPC, Article 10-A CrPC).]\n\n"
             )
+            contextual_question = urdu_preamble + contextual_question
 
         # Step 5: Generate answer
         result = pipeline.generate_answer(
@@ -1661,8 +1673,15 @@ async def citizen_case_quick_analysis(request: CitizenQuickCaseRequest):
         if not groq_key:
             return _fallback_quick_case_analysis(request)
 
+        _case_lang = (request.language or "en").lower().strip()
+        _case_is_urdu = _case_lang == "ur"
+        lang_instruction = (
+            "\n[LANGUAGE: You MUST write the summary, recommendations, next_steps, disclaimer, and all text fields in Urdu (اردو) script. Keep section numbers (e.g., Section 302 PPC) in English.]\n"
+            if _case_is_urdu else ""
+        )
+
         prompt = f"""You are a Pakistan criminal-law intake assistant.
-Analyze this citizen case in simple practical language.
+Analyze this citizen case in simple practical language.{lang_instruction}
 
 Citizen input:
 - Description: {request.case_description}
