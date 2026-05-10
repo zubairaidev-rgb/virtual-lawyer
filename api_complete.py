@@ -389,13 +389,34 @@ def _is_low_quality_answer(answer: str) -> bool:
     return False
 
 
-def _build_universal_fallback_answer(question: str, intent: str = "general") -> str:
+def _build_universal_fallback_answer(question: str, intent: str = "general", language: str = "en") -> str:
     """
     Robust last-line fallback for any prompt type.
     Keeps responses useful, safe, and non-hallucinatory when model confidence is low.
     """
+    is_urdu = (language or "en").lower() == "ur"
     q = (question or "").strip()
     ql = q.lower()
+
+    if is_urdu:
+        if not q:
+            return "براہ کرم اپنا قانونی سوال ایک یا دو جملوں میں بتائیں اور اہم حقائق شامل کریں (کیا ہوا، کب، کہاں، اور کیا اقدام پہلے سے کیا گیا ہے)۔"
+        if intent == "statute_lookup" or "section" in ql:
+            return (
+                "میں اس قانونی دفعہ کی وضاحت کر سکتا ہوں۔ براہ کرم یہ بتائیں کہ آپ کا سوال کس دفعہ کے بارے میں ہے "
+                "(مثلاً Section 302 PPC یا Section 154 CrPC)۔ اگر آپ کو دفعہ نمبر معلوم نہ ہو تو اپنے مقدمے کے حقائق بتائیں، میں خود اندازہ لگا لوں گا۔"
+            )
+        if any(k in ql for k in ["bail", "fir", "arrest", "remand", "police", "case", "ضمانت", "ایف آئی آر", "گرفتاری"]):
+            return (
+                "میں اس معاملے میں مدد کر سکتا ہوں۔ درست جواب کے لیے براہ کرم یہ بتائیں: "
+                "۱) شہر/عدالت (اگر معلوم ہو)، ۲) ایف آئی آر کی صورتحال، ۳) گرفتاری یا حراست کی صورتحال، "
+                "۴) الزام یا دفعہ (اگر دستیاب ہو)، اور ۵) آپ کا فوری مقصد (ضمانت، ایف آئی آر، دفاعی حکمت عملی)۔"
+            )
+        return (
+            "میں اس قانونی معاملے میں آپ کی مدد کر سکتا ہوں۔ براہ کرم کچھ مزید تفصیل فراہم کریں: "
+            "کیا ہوا، کون شامل ہے، موجودہ مرحلہ (ایف آئی آر سے پہلے/بعد/تفتیش/مقدمہ)، اور آپ کیا نتیجہ چاہتے ہیں۔ "
+            "اس کے بعد میں مخصوص قانونی راستے اور اگلے اقدامات بتاؤں گا۔"
+        )
 
     if not q:
         return (
@@ -422,6 +443,66 @@ def _build_universal_fallback_answer(question: str, intent: str = "general") -> 
         "what happened, who is involved, current stage (pre-FIR/FIR/investigation/trial), and what outcome you want. "
         "I will then give focused legal options and next steps."
     )
+
+
+def _call_groq_for_urdu(question: str) -> Optional[Dict]:
+    """
+    Bypass the local pipeline entirely for Urdu questions.
+    Call Groq directly with an Urdu-native system prompt so the LLM cannot default to English.
+    """
+    try:
+        from config import GROQ_API_KEY
+        groq_key = GROQ_API_KEY or ""
+    except Exception:
+        groq_key = ""
+
+    if not groq_key:
+        return None
+
+    urdu_system = (
+        "آپ پاکستان کے فوجداری قانون کے ماہر قانونی مشیر ہیں۔\n"
+        "لازمی اصول:\n"
+        "۱) تمام جوابات مکمل اردو میں دیں — انگریزی میں جواب دینا سختاً ممنوع ہے۔\n"
+        "۲) قانونی دفعات کے نمبر اصل شکل میں رکھیں (جیسے Section 302 PPC، Section 497 CrPC، Article 10-A)۔\n"
+        "۳) پاکستان پینل کوڈ (PPC) اور ضابطہ فوجداری (CrPC) کے بارے میں عملی اور مکمل رہنمائی دیں۔\n"
+        "۴) سوال کا مکمل اور تفصیلی جواب دیں۔ مختصر یا نامکمل جواب قابل قبول نہیں۔\n"
+        "۵) اگر سوال کسی قانونی دفعہ (Section/FIR/Bail) کے بارے میں ہے تو اس دفعہ کی مکمل وضاحت اردو میں کریں۔"
+    )
+
+    try:
+        import requests as _req
+        resp = _req.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
+            json={
+                "model": "llama-3.3-70b-versatile",
+                "messages": [
+                    {"role": "system", "content": urdu_system},
+                    {"role": "user", "content": question},
+                ],
+                "temperature": 0.3,
+                "max_tokens": 1500,
+            },
+            timeout=30,
+        )
+        if resp.status_code != 200:
+            return None
+        content = resp.json()["choices"][0]["message"]["content"].strip()
+        if not content:
+            return None
+        return {
+            "answer": content,
+            "references": [],
+            "sources_count": 0,
+            "response_time": 0,
+            "stage1_time": 0,
+            "stage2_time": 0,
+            "formatted": True,
+            "intent": "general",
+        }
+    except Exception as e:
+        print(f"⚠️  Urdu direct Groq call failed: {e}")
+        return None
 
 
 def _is_false_fir_urgent_question(question: str) -> bool:
@@ -1019,6 +1100,37 @@ Please ask me about any specific legal concern you have. I can also help with do
             contextual_question = urdu_preamble + contextual_question
 
         # Step 5: Generate answer
+        # For Urdu: bypass the local pipeline (which has English-only system prompts)
+        # and call Groq directly with an Urdu-native system prompt.
+        # Pass the original question (clean) rather than contextual_question (which has the preamble).
+        if _is_urdu:
+            urdu_groq_result = _call_groq_for_urdu(normalized_question)
+            if urdu_groq_result:
+                urdu_answer = urdu_groq_result["answer"]
+                # Persist assistant reply
+                if DATABASE_AVAILABLE and db_repo and request.session_id and urdu_answer.strip():
+                    try:
+                        db_repo.append_chat_message(
+                            session_id=request.session_id,
+                            role="assistant",
+                            content=urdu_answer.strip(),
+                            user_id=request.user_id or None,
+                            user_type=request.user_type or None,
+                        )
+                    except Exception as _e:
+                        print(f"Warning: DB chat message write error (assistant/ur): {_e}")
+                return {
+                    "question": original_question,
+                    "answer": urdu_answer,
+                    "references": [],
+                    "sources_count": 0,
+                    "response_time": 0,
+                    "stage1_time": 0,
+                    "stage2_time": 0,
+                    "formatted": True,
+                }
+            # Groq unavailable — fall through to pipeline with Urdu preamble already injected
+
         result = pipeline.generate_answer(
             contextual_question,
             use_formatter=request.use_formatter
@@ -1174,7 +1286,8 @@ Please ask me about any specific legal concern you have. I can also help with do
         # Universal robustness guard: for weak/uncertain output, provide a clear and useful fallback
         # rather than returning low-quality or drifting text.
         if _is_low_quality_answer(final_answer):
-            final_answer = _build_universal_fallback_answer(original_question, intent)
+            _fallback_lang = "ur" if _is_urdu else "en"
+            final_answer = _build_universal_fallback_answer(original_question, intent, language=_fallback_lang)
             # Low-quality fallback should not show misleading source chips.
             frontend_references = []
 
