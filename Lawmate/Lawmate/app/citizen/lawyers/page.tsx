@@ -36,7 +36,7 @@ const COURTS_BY_CITY: Record<string, string[]> = {
 }
 
 export default function LawyerDirectoryPage() {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const router = useRouter()
   const [searchTerm, setSearchTerm] = useState("")
   const [expertise, setExpertise] = useState("all")
@@ -93,7 +93,7 @@ export default function LawyerDirectoryPage() {
       loadLawyers()
     }, 300)
     return () => clearTimeout(timer)
-  }, [searchTerm, expertise])
+  }, [searchTerm, expertise, language])
 
   const loadLawyers = async () => {
     try {
@@ -101,7 +101,8 @@ export default function LawyerDirectoryPage() {
       setError(null)
       const response = await getLawyers(
         searchTerm || undefined,
-        expertise !== "all" ? expertise : undefined
+        expertise !== "all" ? expertise : undefined,
+        language === "ur" ? "ur" : "en"
       )
       setLawyers(response.lawyers)
     } catch (err: any) {
@@ -131,7 +132,11 @@ export default function LawyerDirectoryPage() {
     try {
       setRecommending(true)
       setRecommendationError(null)
-      const response = await getLawyerRecommendations(form)
+      const response = await getLawyerRecommendations({
+        ...form,
+        language: language === "ur" ? "ur" : "en",
+        preferred_language: form.preferred_language || (language === "ur" ? "Urdu" : "English"),
+      })
       setRecommendedLawyers(response.recommendations || [])
       setActiveTab("recommended")
     } catch (err: any) {

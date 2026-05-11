@@ -33,6 +33,7 @@ export interface LawyerRecommendationRequest {
   budget_range?: "low" | "medium" | "high";
   preferred_language?: string;
   hearing_court?: string;
+  language?: "en" | "ur";
 }
 
 export interface RecommendedLawyer extends Lawyer {
@@ -48,10 +49,11 @@ export interface LawyerRecommendationResponse {
   selectionCriteria: Record<string, number>;
 }
 
-export async function getLawyers(search?: string, specialization?: string): Promise<LawyersResponse> {
+export async function getLawyers(search?: string, specialization?: string, language?: "en" | "ur"): Promise<LawyersResponse> {
   const params = new URLSearchParams();
   if (search) params.append("search", search);
   if (specialization) params.append("specialization", specialization);
+  if (language) params.append("language", language);
   const queryString = params.toString();
   return api.get<LawyersResponse>(`/api/lawyers${queryString ? `?${queryString}` : ""}`);
 }

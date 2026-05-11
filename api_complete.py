@@ -732,6 +732,7 @@ class LawyerRecommendationRequest(BaseModel):
     budget_range: Optional[str] = "medium"  # low, medium, high
     preferred_language: Optional[str] = ""
     hearing_court: Optional[str] = ""
+    language: Optional[str] = "en"
 
 
 class CitizenQuickCaseRequest(BaseModel):
@@ -4239,6 +4240,7 @@ def _recommendation_scores(lawyer: Dict, req: LawyerRecommendationRequest, case_
 async def recommend_lawyers_for_case(request: LawyerRecommendationRequest):
     """Recommend best-fit criminal lawyers for a citizen case intake"""
     try:
+        is_urdu = (request.language or "en").lower().strip() == "ur"
         verified_lawyers = [l for l in db_repo.list_all_lawyers_public() if l.get("verificationStatus") == "Verified"]
         if not verified_lawyers:
             return {"recommendations": [], "total": 0, "message": "No verified lawyers currently available"}
@@ -4270,6 +4272,28 @@ async def recommend_lawyers_for_case(request: LawyerRecommendationRequest):
         ranked = sorted(ranked, key=lambda x: x["matchScore"], reverse=True)
         top = ranked[:5]
 
+        if is_urdu and top:
+            translated_names = _translate_to_urdu_with_groq([str(item.get("name", "")) for item in top])
+            translated_expertise = _translate_to_urdu_with_groq([str(item.get("expertise", "")) for item in top])
+            translated_locations = _translate_to_urdu_with_groq([str(item.get("location", "")) for item in top])
+            translated_fees = _translate_to_urdu_with_groq([str(item.get("estimatedFeeBand", "")) for item in top])
+
+            for i, item in enumerate(top):
+                if i < len(translated_names) and translated_names[i]:
+                    item["name"] = translated_names[i]
+                if i < len(translated_expertise) and translated_expertise[i]:
+                    item["expertise"] = translated_expertise[i]
+                if i < len(translated_locations) and translated_locations[i]:
+                    item["location"] = translated_locations[i]
+                if i < len(translated_fees) and translated_fees[i]:
+                    item["estimatedFeeBand"] = translated_fees[i]
+                reasons = item.get("whyRecommended") or []
+                if reasons:
+                    item["whyRecommended"] = _translate_to_urdu_with_groq([str(r) for r in reasons])
+                specs = item.get("specializations") or []
+                if specs:
+                    item["specializations"] = _translate_to_urdu_with_groq([str(s) for s in specs])
+
         return {
             "recommendations": top,
             "total": len(top),
@@ -4295,6 +4319,7 @@ async def get_lawyers_for_citizens(
     search: Optional[str] = None,
     specialization: Optional[str] = None,
     verified_only: bool = False,
+    language: Optional[str] = "en",
 ):
     """Get lawyer directory data for citizens to browse"""
     try:
@@ -4324,6 +4349,22 @@ async def get_lawyers_for_citizens(
                 "bio": lawyer.get("bio", ""),
                 "profileImage": lawyer.get("profileImage", "")
             })
+
+        if (language or "en").lower().strip() == "ur" and formatted_lawyers:
+            translated_names = _translate_to_urdu_with_groq([str(item.get("name", "")) for item in formatted_lawyers])
+            translated_expertise = _translate_to_urdu_with_groq([str(item.get("expertise", "")) for item in formatted_lawyers])
+            translated_locations = _translate_to_urdu_with_groq([str(item.get("location", "")) for item in formatted_lawyers])
+
+            for i, item in enumerate(formatted_lawyers):
+                if i < len(translated_names) and translated_names[i]:
+                    item["name"] = translated_names[i]
+                if i < len(translated_expertise) and translated_expertise[i]:
+                    item["expertise"] = translated_expertise[i]
+                if i < len(translated_locations) and translated_locations[i]:
+                    item["location"] = translated_locations[i]
+                specs = item.get("specialization") or []
+                if specs:
+                    item["specialization"] = _translate_to_urdu_with_groq([str(s) for s in specs])
         return {"lawyers": formatted_lawyers, "total": len(formatted_lawyers)}
     except Exception as e:
         import traceback
