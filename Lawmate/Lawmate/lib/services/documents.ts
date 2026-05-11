@@ -8,20 +8,23 @@ export type TemplateInfo = {
   category?: string;
 };
 
-export async function listTemplates(category?: string) {
-  const query = category ? `?category=${encodeURIComponent(category)}` : "";
+export async function listTemplates(category?: string, language?: string) {
+  const params = new URLSearchParams();
+  if (category) params.set("category", category);
+  if (language) params.set("language", language);
+  const query = params.toString() ? `?${params.toString()}` : "";
   const res = await api.get<{ templates: TemplateInfo[]; count: number }>(
     `/api/document/templates${query}`
   );
   return res.templates;
 }
 
-export async function getTemplateDetails(template_id: string) {
+export async function getTemplateDetails(template_id: string, language?: string) {
   if (!template_id || template_id.trim() === "") {
     throw new Error("Template ID is required");
   }
-  // Encode each part of the template_id separately if it contains slashes
   const encodedId = template_id.split('/').map(part => encodeURIComponent(part)).join('/');
+  const langParam = language ? `?language=${encodeURIComponent(language)}` : "";
   return api.get<{
     template_id: string;
     name?: string;
@@ -29,11 +32,11 @@ export async function getTemplateDetails(template_id: string) {
     placeholders: string[];
     placeholder_descriptions: Record<
       string,
-      { description: string; type: string; required: boolean }
+      { label?: string; description: string; type: string; required: boolean; example?: string }
     >;
     example_data: Record<string, string>;
     total_placeholders: number;
-  }>(`/api/document/templates/${encodedId}`);
+  }>(`/api/document/templates/${encodedId}${langParam}`);
 }
 
 export type UserDocumentMeta = {

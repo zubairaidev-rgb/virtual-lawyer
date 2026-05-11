@@ -505,6 +505,61 @@ def _call_groq_for_urdu(question: str) -> Optional[Dict]:
         return None
 
 
+def _translate_to_urdu_with_groq(texts: list) -> list:
+    """
+    Batch-translate a list of strings to Urdu using Groq in a single API call.
+    Returns originals on failure.
+    """
+    if not texts:
+        return texts
+    try:
+        from config import GROQ_API_KEY
+        groq_key = GROQ_API_KEY or ""
+    except Exception:
+        groq_key = ""
+    if not groq_key:
+        return texts
+
+    numbered = "\n".join(f"{i+1}. {t}" for i, t in enumerate(texts))
+    prompt = (
+        f"Translate each numbered item to Urdu (اردو) script. Keep legal/technical terms, "
+        f"section numbers (like Section 302 PPC), and proper nouns in English. "
+        f"Return ONLY the numbered translations, no extra text.\n\n{numbered}"
+    )
+    try:
+        import requests as _req
+        resp = _req.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"},
+            json={
+                "model": "llama-3.3-70b-versatile",
+                "messages": [
+                    {"role": "system", "content": "You are a precise Urdu translator for legal content. Translate faithfully."},
+                    {"role": "user", "content": prompt},
+                ],
+                "temperature": 0.1,
+                "max_tokens": 1500,
+            },
+            timeout=20,
+        )
+        if resp.status_code != 200:
+            return texts
+        content = resp.json()["choices"][0]["message"]["content"].strip()
+        lines = [l.strip() for l in content.split("\n") if l.strip()]
+        translated = []
+        for line in lines:
+            import re as _re
+            m = _re.match(r"^\d+\.\s*(.+)$", line)
+            if m:
+                translated.append(m.group(1).strip())
+        if len(translated) == len(texts):
+            return translated
+        return texts
+    except Exception as e:
+        print(f"⚠️  Batch Urdu translation failed: {e}")
+        return texts
+
+
 def _is_false_fir_urgent_question(question: str) -> bool:
     q = question.lower()
     has_fir = "fir" in q or "first information report" in q
@@ -2515,15 +2570,24 @@ async def get_document_summary_endpoint(doc_id: str):
 # ============================================================
 
 @app.get("/api/document/templates")
-async def list_templates(category: Optional[str] = None):
+async def list_templates(category: Optional[str] = None, language: Optional[str] = "en"):
     """
     List available document templates
     """
     if not document_generator:
         raise HTTPException(status_code=503, detail="Document generation not available")
-    
+
     try:
         templates = document_generator.list_templates(category=category)
+
+        if (language or "en").lower() == "ur" and templates:
+            # Translate template names in one batch Groq call
+            names = [str(t.get("name") or "") for t in templates]
+            translated_names = _translate_to_urdu_with_groq(names)
+            for i, t in enumerate(templates):
+                if i < len(translated_names) and translated_names[i]:
+                    t["name"] = translated_names[i]
+
         return {
             "templates": templates,
             "count": len(templates)
@@ -2532,7 +2596,7 @@ async def list_templates(category: Optional[str] = None):
         raise HTTPException(status_code=500, detail=f"Error listing templates: {str(e)}")
 
 @app.get("/api/document/templates/{template_id:path}")
-async def get_template_details(template_id: str):
+async def get_template_details(template_id: str, language: Optional[str] = "en"):
     """
     Get detailed information about a specific template including SIMPLIFIED placeholder descriptions
     Returns only essential fields that laymen users need to fill
@@ -2542,15 +2606,52 @@ async def get_template_details(template_id: str):
         raise HTTPException(status_code=503, detail="Document generation not available")
 
     try:
-        # URL decode the template_id
         import urllib.parse
         template_id = urllib.parse.unquote(template_id)
 
         if not template_id or template_id.strip() == "":
             raise HTTPException(status_code=400, detail="Template ID cannot be empty")
 
-        # Use the new simplified template details method
         details = document_generator.get_template_details_simplified(template_id)
+
+        if (language or "en").lower() == "ur":
+            # Translate template name
+            if details.get("name"):
+                details["name"] = (_translate_to_urdu_with_groq([details["name"]]) or [details["name"]])[0]
+
+            # Translate field labels, descriptions, and example placeholders
+            desc_map: dict = details.get("placeholder_descriptions", {})
+            if desc_map:
+                # Build flat lists for batch translation
+                keys = list(desc_map.keys())
+                labels = [str(desc_map[k].get("label") or k) for k in keys]
+                descriptions = [str(desc_map[k].get("description") or "") for k in keys]
+                examples = [str(desc_map[k].get("example") or "") for k in keys]
+
+                # Translate labels in one call
+                translated_labels = _translate_to_urdu_with_groq(labels)
+                # Translate descriptions (only non-empty ones to save tokens)
+                nonempty_descs = [(i, d) for i, d in enumerate(descriptions) if d]
+                if nonempty_descs:
+                    trans_descs = _translate_to_urdu_with_groq([d for _, d in nonempty_descs])
+                    for idx, (orig_i, _) in enumerate(nonempty_descs):
+                        if idx < len(trans_descs):
+                            descriptions[orig_i] = trans_descs[idx]
+
+                # Update desc_map with Urdu strings
+                for i, k in enumerate(keys):
+                    entry = dict(desc_map[k])
+                    if i < len(translated_labels) and translated_labels[i]:
+                        entry["label"] = translated_labels[i]
+                    if descriptions[i]:
+                        entry["description"] = descriptions[i]
+                    # Translate example/placeholder text shown in input
+                    if examples[i]:
+                        ur_ex = (_translate_to_urdu_with_groq([examples[i]]) or [examples[i]])[0]
+                        entry["example"] = ur_ex
+                    desc_map[k] = entry
+                details["placeholder_descriptions"] = desc_map
+
         return details
 
     except HTTPException:

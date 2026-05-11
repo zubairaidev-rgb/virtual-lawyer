@@ -132,11 +132,11 @@ export default function DocumentsPage() {
     setIsLoaded(true)
     loadTemplates()
     void loadUploadedDocs()
-  }, [])
+  }, [language])
 
   const loadTemplates = async () => {
     try {
-      const templatesList = await listTemplates()
+      const templatesList = await listTemplates(undefined, language)
       setTemplates(templatesList)
     } catch (err: any) {
       console.error("Failed to load templates:", err)
@@ -223,7 +223,7 @@ export default function DocumentsPage() {
     setError(null)
     setJsonError(null)
     try {
-      const details = await getTemplateDetails(templateId)
+      const details = await getTemplateDetails(templateId, language)
       console.log("Template details received:", details)
       setTemplateDetails(details)
       // Initialize with example data
@@ -891,6 +891,7 @@ export default function DocumentsPage() {
                         <div className="space-y-2 max-h-48 overflow-y-auto">
                           {templateDetails.placeholders.map((placeholder: string) => {
                             const desc = templateDetails.placeholder_descriptions?.[placeholder]
+                            const displayLabel = desc?.label || desc?.original_name || placeholder
                             return (
                               <div
                                 key={placeholder}
@@ -899,9 +900,9 @@ export default function DocumentsPage() {
                                 <div className="flex items-start justify-between">
                                   <div className="flex-1">
                                     <div className="flex items-center gap-2">
-                                      <span className="font-medium text-sm">{placeholder}</span>
+                                      <span className="font-medium text-sm">{displayLabel}</span>
                                       {desc?.required && (
-                                        <Badge variant="destructive" className="text-xs">Required</Badge>
+                                        <Badge variant="destructive" className="text-xs">{t("docs.required")}</Badge>
                                       )}
                                     </div>
                                     {desc?.description && (
@@ -950,17 +951,18 @@ export default function DocumentsPage() {
                         {templateDetails.placeholders && templateDetails.placeholders.length > 0 ? (
                           templateDetails.placeholders.map((placeholderKey: string) => {
                             const desc = templateDetails.placeholder_descriptions?.[placeholderKey]
-                            const originalName = desc?.original_name || placeholderKey
+                            const displayLabel = desc?.label || desc?.original_name || placeholderKey
                             const fieldType = desc?.type || "text"
                             const isRequired = desc?.required || false
                             const currentValue = templateData[placeholderKey] || ""
-                            
+                            const examplePlaceholder = desc?.example || (language === "ur" ? `${displayLabel} درج کریں` : `Enter ${displayLabel.toLowerCase()}`)
+
                             return (
                               <div key={placeholderKey} className="space-y-2">
                                 <label className="text-sm font-medium flex items-center gap-2">
-                                  {originalName}
+                                  {displayLabel}
                                   {isRequired && (
-                                    <Badge variant="destructive" className="text-xs">Required</Badge>
+                                    <Badge variant="destructive" className="text-xs">{t("docs.required")}</Badge>
                                   )}
                                 </label>
                                 {desc?.description && (
@@ -976,7 +978,7 @@ export default function DocumentsPage() {
                                       setTemplateData(newData)
                                       setTemplateDataJson(JSON.stringify(newData, null, 2))
                                     }}
-                                    placeholder={`Enter ${originalName.toLowerCase()}`}
+                                    placeholder={examplePlaceholder}
                                     rows={4}
                                     className="w-full border-2 border-border focus:border-primary transition-colors"
                                   />
@@ -989,7 +991,7 @@ export default function DocumentsPage() {
                                       setTemplateData(newData)
                                       setTemplateDataJson(JSON.stringify(newData, null, 2))
                                     }}
-                                    placeholder={`Enter ${originalName.toLowerCase()}`}
+                                    placeholder={examplePlaceholder}
                                     className="w-full border-2 border-border focus:border-primary transition-colors"
                                     required={isRequired}
                                   />
