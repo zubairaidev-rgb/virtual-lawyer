@@ -90,11 +90,20 @@ export default function CaseAnalysisPage() {
         case_type: caseType,
         urgency,
         custody_status: custodyStatus,
+        language,
       })
       setOnboardingProfile(response)
       if (!caseSummary) setCaseSummary(response.one_paragraph_summary)
-      if (!keyQuestion) setKeyQuestion(`Analyze ${caseType || "this matter"} and suggest strongest legal strategy.`)
-      if (!desiredOutcome) setDesiredOutcome("Clear legal strategy, immediate action plan, and practical remedy path.")
+      if (!keyQuestion) setKeyQuestion(
+        language === "ur"
+          ? `اس مقدمے (${caseType || "فوجداری معاملہ"}) کا تجزیہ کریں اور بہترین قانونی حکمت عملی بتائیں۔`
+          : `Analyze ${caseType || "this matter"} and suggest strongest legal strategy.`
+      )
+      if (!desiredOutcome) setDesiredOutcome(
+        language === "ur"
+          ? "واضح قانونی حکمت عملی، فوری عمل کا منصوبہ، اور عملی قانونی راستہ۔"
+          : "Clear legal strategy, immediate action plan, and practical remedy path."
+      )
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to prepare analysis."
       setError(message)
@@ -170,12 +179,21 @@ export default function CaseAnalysisPage() {
         case_type: caseType,
         urgency,
         custody_status: custodyStatus,
+        language,
       })
 
       setOnboardingProfile(prepared)
       if (!caseSummary) setCaseSummary(prepared.one_paragraph_summary)
-      if (!keyQuestion) setKeyQuestion(`Analyze ${caseType || "this matter"} and suggest strongest legal strategy.`)
-      if (!desiredOutcome) setDesiredOutcome("Clear legal strategy, immediate action plan, and practical remedy path.")
+      if (!keyQuestion) setKeyQuestion(
+        language === "ur"
+          ? `اس مقدمے (${caseType || "فوجداری معاملہ"}) کا تجزیہ کریں اور بہترین قانونی حکمت عملی بتائیں۔`
+          : `Analyze ${caseType || "this matter"} and suggest strongest legal strategy.`
+      )
+      if (!desiredOutcome) setDesiredOutcome(
+        language === "ur"
+          ? "واضح قانونی حکمت عملی، فوری عمل کا منصوبہ، اور عملی قانونی راستہ۔"
+          : "Clear legal strategy, immediate action plan, and practical remedy path."
+      )
       setOnboardingLoading(false)
 
       await handleAnalyze(prepared)

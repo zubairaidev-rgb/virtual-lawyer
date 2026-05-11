@@ -740,6 +740,7 @@ class CaseOnboardingExtractRequest(BaseModel):
     urgency: Optional[str] = "medium"
     custody_status: Optional[str] = "unknown"
     uploaded_documents: Optional[List[OnboardingDocumentItem]] = []
+    language: Optional[str] = "en"
 
 
 class CreateLawyerClientRequest(BaseModel):
@@ -1842,6 +1843,15 @@ Rules:
 - Return JSON only. No markdown.
 """
 
+        _qa_sys = (
+            "آپ پاکستان کے فوجداری قانون کے ماہر ہیں۔ آپ JSON فارمیٹ میں جواب دیتے ہیں۔ "
+            "تمام متن والے فیلڈز (summary، recommendations، next_steps، disclaimer، likely_case_type) "
+            "کی قدریں مکمل اردو میں ہونی چاہئیں۔ "
+            "JSON کی کلیدیں انگریزی میں رہیں۔ قانونی دفعات کے نمبر انگریزی میں رکھیں (مثلاً Section 302 PPC)۔"
+            if _case_is_urdu else
+            "You generate valid JSON for legal-intake triage."
+        )
+
         response = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",
             headers={
@@ -1851,7 +1861,7 @@ Rules:
             json={
                 "model": "llama-3.3-70b-versatile",
                 "messages": [
-                    {"role": "system", "content": "You generate valid JSON for legal-intake triage."},
+                    {"role": "system", "content": _qa_sys},
                     {"role": "user", "content": prompt}
                 ],
                 "temperature": 0.2,
@@ -2216,8 +2226,31 @@ async def case_onboarding_extract(request: CaseOnboardingExtractRequest):
                 "one_paragraph_summary": "Initial onboarding summary generated without external model; add more details and run analysis.",
             }
 
+        _ob_is_urdu = (request.language or "en").lower().strip() == "ur"
+        # Also auto-detect Arabic script in description
+        if not _ob_is_urdu:
+            for _ch in description:
+                import unicodedata as _ud
+                if _ud.category(_ch) in ('Lo',) and '؀' <= _ch <= 'ۿ':
+                    _ob_is_urdu = True
+                    break
+
+        _ob_lang_note = (
+            "\nLANGUAGE RULE: All text field VALUES (core_facts, parties, timeline_points, "
+            "evidence_found, missing_critical_information, one_paragraph_summary) MUST be written "
+            "in Urdu (اردو) script. JSON keys stay in English. Section numbers stay in English (e.g., Section 302 PPC).\n"
+            if _ob_is_urdu else ""
+        )
+        _ob_sys = (
+            "آپ پاکستان کے فوجداری قانون کے کیس آن بورڈنگ تجزیہ کار ہیں۔ آپ JSON فارمیٹ میں جواب دیتے ہیں۔ "
+            "تمام متن والے فیلڈز (core_facts، parties، timeline_points، one_paragraph_summary وغیرہ) کی قدریں مکمل اردو میں ہونی چاہئیں۔ "
+            "JSON کی کلیدیں انگریزی میں رہیں۔ قانونی دفعات کے نمبر انگریزی میں رکھیں (مثلاً Section 302 PPC)۔"
+            if _ob_is_urdu else
+            "You generate valid JSON for legal case onboarding extraction."
+        )
+
         prompt = f"""You are a Pakistan criminal-law case onboarding analyst.
-Convert user intake into structured profile for downstream analysis/prediction.
+Convert user intake into structured profile for downstream analysis/prediction.{_ob_lang_note}
 
 Input:
 - Case type selected: {request.case_type or "not specified"}
@@ -2260,7 +2293,7 @@ Rules:
             json={
                 "model": "llama-3.3-70b-versatile",
                 "messages": [
-                    {"role": "system", "content": "You generate valid JSON for legal case onboarding extraction."},
+                    {"role": "system", "content": _ob_sys},
                     {"role": "user", "content": prompt},
                 ],
                 "temperature": 0.2,

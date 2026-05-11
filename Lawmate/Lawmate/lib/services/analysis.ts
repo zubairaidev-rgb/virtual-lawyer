@@ -188,6 +188,7 @@ export type OnboardingExtractionRequest = {
   urgency?: "low" | "medium" | "high";
   custody_status?: "in_custody" | "not_in_custody" | "unknown";
   uploaded_documents?: Array<{ doc_id: string; file_name: string }>;
+  language?: string;
 };
 
 export type OnboardingExtractionResponse = {
