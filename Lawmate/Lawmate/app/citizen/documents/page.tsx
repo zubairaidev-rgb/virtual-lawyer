@@ -63,7 +63,7 @@ interface GeneratedDocument {
 }
 
 export default function DocumentsPage() {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const [isLoaded, setIsLoaded] = useState(false)
   const [activeTab, setActiveTab] = useState<"uploaded" | "generated" | "templates" | "analyze">("uploaded")
   
