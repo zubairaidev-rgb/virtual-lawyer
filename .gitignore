@@ -14,3 +14,6 @@ data/lawmate.db
 *.pid
 data/generated_documents/
 *.tsbuildinfo
+
+# Training checkpoints (large duplicate weights; keep final_golden_model + final_model_v5 tracked)
+models/fine-tuned/golden_model/checkpoint-*/
