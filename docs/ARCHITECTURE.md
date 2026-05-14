@@ -85,3 +85,16 @@ virtual-lawyer/
 
 - Pydantic models in `api_complete.py` define the **contract** between frontend and backend.
 - `src/two_stage_pipeline.py` and related files document the **RAG + formatter** flow for legal answers.
+
+## Git push troubleshooting (Windows)
+
+If `git push` fails with **`malloc failed (tried to allocate 1572864000 bytes)`**, check **global** Git settings: some guides set `http.postBuffer` / `http.maxRequestBuffer` to **1.5 GiB**, which forces Git to allocate that much RAM per push. Fix by lowering or unsetting them, for example:
+
+```bash
+git config --global --unset http.postBuffer
+git config --global --unset http.maxRequestBuffer
+```
+
+This repository sets **local** overrides (`git config --local http.postBuffer` / `http.maxRequestBuffer`) so pushes work even when global buffers are huge.
+
+Intermediate Hugging Face **training checkpoints** under `models/fine-tuned/golden_model/checkpoint-*` are intentionally **not tracked** (they duplicate large `adapter_model.safetensors` files); the API uses **`final_golden_model`**. Keep checkpoint folders on disk locally if you still need them for training.
