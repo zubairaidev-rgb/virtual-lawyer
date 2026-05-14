@@ -14,7 +14,7 @@ bitsandbytes==0.42.0
 sentence-transformers==2.3.1
 faiss-cpu
 
-# Data Processing
+# Data Processing (pandas 2.1.x has no wheels for Python 3.13; use 3.12 on Railway — see .python-version / railpack.json)
 pandas==2.1.4
 # accelerate 0.33.x requires numpy<2; keep 1.x for the full ML stack on Windows.
 numpy>=1.26.4,<2.0
