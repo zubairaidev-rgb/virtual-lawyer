@@ -1,3 +1,10 @@
+/**
+ * Central HTTP client for the Lawmate Next.js app.
+ *
+ * - Base URL from NEXT_PUBLIC_API_URL (see .env.example or deployment env).
+ * - Attaches Bearer JWT from localStorage for authenticated routes.
+ * - Exposes small helpers used by feature modules under lib/services/.
+ */
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:8000";
 

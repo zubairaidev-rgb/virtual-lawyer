@@ -1,6 +1,10 @@
 """
-Security Utilities for Lawmate API
-Includes: JWT Authentication, Input Sanitization, RBAC
+Security utilities for the Lawmate API: JWT issuance/verification, HTML sanitization,
+and FastAPI dependencies for role-based access control (RBAC).
+
+Used by ``api_complete`` for login responses and protected admin/lawyer routes.
+When optional dependencies (``python-jose``, ``bleach``, …) are missing, the API
+falls back to development stubs defined in ``api_complete``.
 """
 import os
 from datetime import datetime, timedelta

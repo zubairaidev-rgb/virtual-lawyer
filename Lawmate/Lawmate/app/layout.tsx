@@ -1,3 +1,7 @@
+/**
+ * Root layout: global fonts, analytics, and app-wide providers (language + dashboard store).
+ * Role-specific shells live under app/citizen, app/lawyer, and app/admin.
+ */
 import type React from "react"
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
