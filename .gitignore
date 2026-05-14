@@ -13,3 +13,4 @@ data/lawyer_images/
 data/lawmate.db
 *.pid
 data/generated_documents/
+*.tsbuildinfo

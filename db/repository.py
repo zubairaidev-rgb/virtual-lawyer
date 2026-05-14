@@ -1,3 +1,13 @@
+"""
+MongoDB data-access layer (repository pattern) for Lawmate.
+
+Contains typed helpers for citizens, lawyers, admins, stored cases, lawyer–client
+rows, chat history, and platform settings. All functions use ``get_collection``
+from ``db.database`` and strip ``_id`` where API responses should stay JSON-clean.
+
+Transient network errors to MongoDB Atlas are retried in hot paths via
+``_run_with_mongo_retry``.
+"""
 from __future__ import annotations
 
 import json

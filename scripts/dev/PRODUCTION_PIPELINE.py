@@ -8,8 +8,12 @@ import os
 import sys
 from pathlib import Path
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+_scripts_dir = Path(__file__).resolve().parents[1]
+if str(_scripts_dir) not in sys.path:
+    sys.path.insert(0, str(_scripts_dir))
+from _repo import bootstrap_path  # noqa: E402
+
+bootstrap_path()
 
 # Import config to set API key
 try:

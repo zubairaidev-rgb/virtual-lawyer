@@ -1,12 +1,29 @@
 """
-Complete Legal AI API
-Includes: Risk Analysis, Case Prediction, Advanced Analysis, and Chatbot
+Lawmate / Virtual Lawyer — HTTP API (FastAPI).
+
+This module is the **single backend entrypoint** for the criminal-law assistance
+platform. It wires together:
+
+- **AI stack** (optional): two/three-stage pipeline, RAG, risk/prediction analyzers,
+  document Q&A and template generation — imported from ``src/`` with graceful
+  fallback if dependencies or GPU are unavailable.
+- **Persistence**: MongoDB access via ``db.repository`` when ``MONGODB_CONNECTION_STRING``
+  is configured.
+- **Security**: JWT and role guards from ``security_utils`` when optional crypto
+  dependencies are installed; otherwise safe development stubs.
+
+**Why one large module?** The FYP codebase keeps all routes here for simpler
+deployment and marking review; logical **sections** are marked with banner
+comments. For a fuller map of folders and run commands, see ``docs/ARCHITECTURE.md``.
+
+**Interactive docs:** Start the server and open ``/docs`` (Swagger UI) or ``/redoc``;
+route docstrings below feed those pages.
 """
 import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load environment variables first, before any other imports
+# Load environment variables first, before any other imports (``config`` also loads .env).
 load_dotenv()
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends
@@ -28,7 +45,7 @@ try:
 except Exception:
     pass
 
-# Add src to path
+# Pipeline packages live under ./src (not installed as a site-package).
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 # Try to import AI pipeline - make it optional
@@ -117,14 +134,18 @@ except ImportError:
     QuestionNormalizer = None
     CaseLawVerifier = None
 
-# Initialize FastAPI
+# --- FastAPI application (OpenAPI title/description appear at /docs) ---
 app = FastAPI(
-    title="Pakistan Criminal Law AI API",
-    description="Complete API for legal analysis, risk assessment, case prediction, and chatbot",
-    version="1.0.0"
+    title="Pakistan Criminal Law AI API (Lawmate)",
+    description=(
+        "REST API backing the Lawmate web app: legal chat with RAG, case triage, "
+        "document tools, dashboards, authentication, and admin operations. "
+        "See docs/ARCHITECTURE.md for repository layout."
+    ),
+    version="1.0.0",
 )
 
-# CORS middleware - Secure configuration
+# --- CORS: explicit origin allowlist (never use "*" with credentials) ---
 ALLOWED_ORIGINS = [
     "http://localhost:3000",      # Local development frontend
     "http://localhost:8000",      # Local development backend
@@ -218,7 +239,7 @@ except Exception as e:
     def verify_ownership_or_admin(*_args, **_kwargs):
         return True
 
-# Initialize components
+# --- Wire AI subsystems, document stack, and safety tools (partial failure is tolerated) ---
 print("Initializing API components...")
 validator = None  # Initialize at module level
 safety_guard = None
@@ -312,7 +333,11 @@ except Exception as e:
     question_normalizer = None
     case_law_verifier = None
 
-# Request/Response Models
+# -----------------------------------------------------------------------------
+# Pydantic models & chat helpers
+# -----------------------------------------------------------------------------
+# Request/response bodies for OpenAPI. Shared ``_`` helpers support /api/chat
+# (intent, grounding checks, structured answers, DB-backed session context).
 class QuestionRequest(BaseModel):
     question: str
     # Groq formatter is on by default for best final answer quality.
@@ -519,6 +544,9 @@ def _is_legally_grounded_answer(answer: str, references: List[Dict]) -> bool:
         return True
     return ans_sections.issubset(ref_sections)
 
+
+# --- Pydantic models: structured case intake (risk / prediction / advanced routes) ---
+
 class CaseDetailsRequest(BaseModel):
     sections: List[str]
     evidence: Optional[str] = ""
@@ -701,10 +729,13 @@ def _is_domestic_abuse_query(question: str) -> bool:
     family_signals = ["divorce", "khula", "talaq", "nikah", "husband", "wife", "marriage"]
     return any(sig in q for sig in abuse_signals) and any(sig in q for sig in family_signals)
 
-# Health Check
+# =============================================================================
+# HTTP API — public, health, chat
+# =============================================================================
+
 @app.get("/")
 async def root():
-    """Root endpoint"""
+    """Service discovery: status, version, and primary endpoint paths for clients."""
     return {
         "status": "online",
         "service": "Pakistan Criminal Law AI API",
@@ -724,7 +755,7 @@ async def root():
 
 @app.get("/health")
 async def health():
-    """Health check endpoint"""
+    """Liveness probe; reports which optional AI subsystems initialized successfully."""
     return {
         "status": "healthy",
         "components": {
@@ -736,13 +767,16 @@ async def health():
         }
     }
 
-# Chatbot Endpoint
+# --- Legal chat: RAG-backed pipeline, validation, optional chat persistence ---
+
 @app.post("/api/chat")
 async def chat(request: QuestionRequest):
     """
-    Chat with the legal AI chatbot
-    
-    Ask any question about Pakistan criminal law
+    Primary legal Q&A endpoint.
+
+    Runs the configured two/three-stage pipeline (retrieval + optional local
+    reasoning + Groq formatting), applies safety/grounding checks, and may
+    persist turns when ``session_id`` / user metadata are supplied.
     """
     if not pipeline:
         raise HTTPException(status_code=503, detail="Chatbot pipeline not available")
@@ -1227,13 +1261,14 @@ Please ask me about any specific legal concern you have. I can also help with do
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating answer: {str(e)}")
 
-# Risk Analysis Endpoint
+# =============================================================================
+# HTTP API — structured analyzers (risk, prediction, advanced, all-in-one)
+# =============================================================================
+
 @app.post("/api/risk-analysis")
 async def risk_analysis(request: RiskAnalysisRequest):
     """
-    Advanced Risk Analysis
-    
-    Analyzes legal case and provides comprehensive risk assessment
+    Score legal exposure from structured case fields using ``LegalRiskAnalyzer``.
     """
     try:
         case_dict = request.case_details.dict()
@@ -1255,13 +1290,10 @@ async def risk_analysis(request: RiskAnalysisRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error in risk analysis: {str(e)}")
 
-# Case Prediction Endpoint
 @app.post("/api/case-prediction")
 async def case_prediction(request: PredictionRequest):
     """
-    Case Outcome Prediction
-    
-    Predicts case outcome, bail probability, and sentencing
+    Outcome-oriented estimates (conviction/bail/timeline) from ``CasePredictor``.
     """
     try:
         case_dict = request.case_details.dict()
@@ -1288,13 +1320,10 @@ async def case_prediction(request: PredictionRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error in case prediction: {str(e)}")
 
-# Advanced Analysis Endpoint
 @app.post("/api/advanced-analysis")
 async def advanced_analysis(request: AnalysisRequest):
     """
-    Comprehensive Advanced Case Analysis
-    
-    Complete analysis with risk, prediction, strategy, evidence, and defense
+    Deep bundle: strategy, evidence view, defense angles — ``AdvancedCaseAnalyzer``.
     """
     try:
         case_dict = request.case_details.dict()
@@ -1313,13 +1342,10 @@ async def advanced_analysis(request: AnalysisRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error in advanced analysis: {str(e)}")
 
-# Comprehensive Endpoint (All-in-One)
 @app.post("/api/comprehensive")
 async def comprehensive(request: AnalysisRequest):
     """
-    Complete Comprehensive Analysis
-    
-    Returns everything: Chat response, Risk Analysis, Prediction, and Advanced Analysis
+    Single call that aggregates chat snippet, risk, prediction, and advanced blocks.
     """
     try:
         case_dict = request.case_details.dict()
@@ -1383,13 +1409,12 @@ async def comprehensive(request: AnalysisRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error in comprehensive analysis: {str(e)}")
 
-# Text-Based Case Analysis (from old API)
+# --- Text-first analysis (legacy-friendly JSON for dashboards / older clients) ---
+
 @app.post("/api/case-analysis-text")
 async def case_analysis_text(request: CaseTextRequest):
     """
-    Analyze case from text description (compatible with old API)
-    
-    Accepts case description text and extracts sections automatically
+    Analyze a free-text case memo plus optional explicit section numbers.
     """
     try:
         # Use text-based analysis
@@ -1637,6 +1662,10 @@ def _build_confidence_note(request: CitizenQuickCaseRequest) -> str:
         return "Medium confidence: useful analysis, but adding missing facts can improve precision."
     return "Low confidence: please add timeline, FIR status, evidence, and witness details for better accuracy."
 
+
+# =============================================================================
+# HTTP API — citizen & lawyer quick triage + onboarding (Groq when configured)
+# =============================================================================
 
 @app.post("/api/citizen/case-quick-analysis")
 async def citizen_case_quick_analysis(request: CitizenQuickCaseRequest):
@@ -2041,6 +2070,8 @@ Rules:
         return parsed_fb
 
 
+# --- Case onboarding: structure free-text + optional uploaded-doc metadata via Groq ---
+
 @app.post("/api/case-onboarding/extract")
 async def case_onboarding_extract(request: CaseOnboardingExtractRequest):
     """
@@ -2170,7 +2201,10 @@ Rules:
         raise HTTPException(status_code=500, detail=f"Error in onboarding extraction: {str(e)}")
 
 
-# Bail Prediction Endpoint (standalone)
+# =============================================================================
+# HTTP API — bail triage + optional legacy analytics module
+# =============================================================================
+
 class BailFactorsRequest(BaseModel):
     """Request for bail prediction with factors"""
     sections: List[str]
@@ -2180,9 +2214,7 @@ class BailFactorsRequest(BaseModel):
 @app.post("/api/bail-prediction")
 async def bail_prediction(request: BailFactorsRequest):
     """
-    Standalone bail prediction with factors (from old API)
-    
-    Accepts sections and mitigating/aggravating factors
+    Bail likelihood helper from sections plus mitigating/aggravating factor lists.
     """
     try:
         factors = {
@@ -2201,7 +2233,8 @@ async def bail_prediction(request: BailFactorsRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error in bail prediction: {str(e)}")
 
-# Analytics Endpoint (if available)
+# --- Legacy analytics package (guarded: only registered if module loads) ---
+
 if analytics_available:
     analytics = AdvancedAnalytics()
     
@@ -2214,9 +2247,9 @@ if analytics_available:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error in analytics: {str(e)}")
 
-# ============================================================
-# DOCUMENT ANALYSIS ENDPOINTS
-# ============================================================
+# =============================================================================
+# HTTP API — document upload, Q&A, templates, generation, download
+# =============================================================================
 
 class DocumentQuestionRequest(BaseModel):
     doc_id: str
@@ -2492,9 +2525,9 @@ async def download_document(filename: str, format: Optional[str] = None):
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
 
-# ============================================================
-# DASHBOARD ENDPOINTS
-# ============================================================
+# =============================================================================
+# HTTP API — citizen & lawyer dashboards + case CRUD (MongoDB)
+# =============================================================================
 
 @app.get("/api/dashboard/citizen")
 async def get_citizen_dashboard(citizen_id: Optional[str] = None):
@@ -2907,9 +2940,9 @@ async def analyze_and_generate(request: AnalyzeAndGenerateRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error in analyze-and-generate: {str(e)}")
 
-# ============================================================
-# ADMIN ENDPOINTS
-# ============================================================
+# =============================================================================
+# HTTP API — admin console (metrics, users, lawyers, settings)
+# =============================================================================
 
 @app.get("/api/admin/dashboard")
 async def get_admin_dashboard(current_user: dict = Depends(require_role("admin"))):
@@ -3053,6 +3086,8 @@ async def update_admin_settings(request: UpdateSettingsRequest):
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error updating admin settings: {str(e)}")
 
+# --- Lawyer-facing analytics (case outcomes / workload aggregates) ---
+
 @app.get("/api/analytics/lawyer")
 async def get_lawyer_analytics(lawyer_id: Optional[str] = None):
     """
@@ -3147,9 +3182,9 @@ async def get_lawyer_analytics(lawyer_id: Optional[str] = None):
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error getting lawyer analytics: {str(e)}")
 
-# ============================================================
-# AUTHENTICATION ENDPOINTS
-# ============================================================
+# =============================================================================
+# HTTP API — authentication (citizen, lawyer, admin)
+# =============================================================================
 
 class LoginRequest(BaseModel):
     email: str
@@ -3621,9 +3656,9 @@ async def upload_lawyer_image(lawyer_id: str, image: UploadFile = File(...), cur
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error uploading image: {str(e)}")
 
-# ============================================================
-# LAWYER CLIENTS ENDPOINTS
-# ============================================================
+# =============================================================================
+# HTTP API — lawyer CRM (clients and linked cases)
+# =============================================================================
 
 @app.get("/api/lawyer/clients")
 async def get_lawyer_clients(
@@ -3849,9 +3884,9 @@ async def create_lawyer_client_case(client_id: str, request: CreateLawyerClientC
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Error creating client case: {str(e)}")
 
-# ============================================================
-# CITIZEN FIND LAWYERS ENDPOINTS
-# ============================================================
+# -----------------------------------------------------------------------------
+# Lawyer marketplace helpers (tag extraction + scoring for recommendations)
+# -----------------------------------------------------------------------------
 
 def _extract_case_tags(case_type: Optional[str], case_description: str, charges_or_sections: str = "") -> List[str]:
     """Extract criminal-law specific tags from citizen input"""
@@ -3968,10 +4003,17 @@ def _recommendation_scores(lawyer: Dict, req: LawyerRecommendationRequest, case_
         "estimated_fee_band": estimated_fee_band,
     }
 
+# =============================================================================
+# HTTP API — lawyer marketplace (recommendations + directory + profile image)
+# =============================================================================
+
 @app.post("/api/lawyers/recommendations")
 @app.post("/api/recommendations/lawyers")
 async def recommend_lawyers_for_case(request: LawyerRecommendationRequest):
-    """Recommend best-fit criminal lawyers for a citizen case intake"""
+    """
+    Rank verified lawyers for a citizen intake using specialization, city, experience,
+    performance metrics, and declared urgency/budget heuristics.
+    """
     try:
         verified_lawyers = [l for l in db_repo.list_all_lawyers_public() if l.get("verificationStatus") == "Verified"]
         if not verified_lawyers:
@@ -4111,7 +4153,7 @@ async def get_lawyer_image(lawyer_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error loading image: {str(e)}")
 
-# Run server
+# --- CLI / direct execution (``python api_complete.py``) ---
 if __name__ == "__main__":
     print("\n" + "=" * 70)
     print("PAKISTAN CRIMINAL LAW AI API - COMPLETE SYSTEM")

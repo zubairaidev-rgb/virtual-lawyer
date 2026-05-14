@@ -6,6 +6,11 @@ import sys
 import os
 from pathlib import Path
 
+_scripts_dir = Path(__file__).resolve().parents[1]
+if str(_scripts_dir) not in sys.path:
+    sys.path.insert(0, str(_scripts_dir))
+from _repo import repo_root as get_repo_root  # noqa: E402
+
 def check_dependencies():
     """Check if required packages are installed"""
     print("=" * 60)
@@ -49,23 +54,28 @@ def check_files():
     print("\n" + "=" * 60)
     print("CHECKING FILES")
     print("=" * 60)
-    
+
+    repo_root = get_repo_root()
+
     files_to_check = [
-        ('test_document_features.py', 'Test script'),
-        ('api_complete.py', 'API server script'),
-        ('test_document.pdf', 'Test document (optional)'),
+        (repo_root / "scripts" / "qa" / "test_document_features.py", "Test script"),
+        (repo_root / "api_complete.py", "API server script"),
+        (repo_root / "test_document.pdf", "Test document (optional)"),
     ]
-    
+
     all_exist = True
-    for file_path, description in files_to_check:
-        path = Path(file_path)
+    for path, description in files_to_check:
         if path.exists():
-            print(f"✅ {description}: {file_path}")
+            print(f"✅ {description}: {path.relative_to(repo_root)}")
         else:
-            print(f"⚠️  {description}: {file_path} - NOT FOUND")
-            if file_path != 'test_document.pdf':
+            try:
+                display = path.relative_to(repo_root)
+            except ValueError:
+                display = path
+            print(f"⚠️  {description}: {display} - NOT FOUND")
+            if path.name != "test_document.pdf":
                 all_exist = False
-    
+
     return all_exist
 
 def check_api_server():
@@ -160,7 +170,7 @@ def main():
     print("\n" + "=" * 60)
     print("RECOMMENDATIONS")
     print("=" * 60)
-    print("1. If system was freezing, use: python test_document_features_safe.py")
+    print("1. If system was freezing, use: python scripts/qa/test_document_features_safe.py")
     print("2. Make sure API server is running before testing")
     print("3. Close other heavy applications to free memory")
     print("4. If issues persist, check API server logs")

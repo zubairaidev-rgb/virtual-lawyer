@@ -1,9 +1,14 @@
 """
-Two-Stage Pipeline for Pakistan Criminal Law Chatbot
-Stage 1: Your fine-tuned model (retrieval + initial answer)
-Stage 2: Formatting model (improves and formats the answer)
+Two-stage legal answer pipeline (primary production path for ``/api/chat``).
 
-This is the PRODUCTION-READY version optimized for best performance.
+**Stage 1** — ``MultiLayerPipeline``: multi-source RAG over PPC, case law, and
+structured corpora, with optional local reasoning / extractive composition.
+
+**Stage 2** — Groq-backed formatter: polishes tone, structure, and Urdu/English
+output while grounding checks try to keep citations aligned with retrieved law.
+
+Configuration and API keys are read from the repository ``config`` module and
+environment variables (see ``docs/ARCHITECTURE.md``).
 """
 import os
 import time

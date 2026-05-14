@@ -9,6 +9,11 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
+_scripts_dir = Path(__file__).resolve().parents[1]
+if str(_scripts_dir) not in sys.path:
+    sys.path.insert(0, str(_scripts_dir))
+from _repo import repo_root as _repo_root  # noqa: E402
+
 # Files to delete - categorized
 FILES_TO_DELETE = {
     # Documentation files (MD)
@@ -78,6 +83,7 @@ ESSENTIAL_FILES = [
 # Essential directories
 ESSENTIAL_DIRS = [
     "src",
+    "scripts",
     "Lawmate",
     "venv",
 ]
@@ -85,7 +91,7 @@ ESSENTIAL_DIRS = [
 
 def get_project_root():
     """Get the project root directory"""
-    return Path(__file__).parent.absolute()
+    return _repo_root()
 
 
 def check_essential_files():

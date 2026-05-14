@@ -1,10 +1,10 @@
 """
-Project configuration.
+Project configuration for AI pipelines and external services.
 
-This file is intentionally used by the backend pipelines to read API keys
-and pipeline settings from environment variables / local `.env`.
+Loads ``.env`` / ``env`` from the repository root, then exposes typed constants
+such as ``GROQ_API_KEY`` and ``PIPELINE_CONFIG`` consumed by modules under ``src/``.
+Adjust behaviour via environment variables (documented in keys inside ``PIPELINE_CONFIG``).
 """
-
 from __future__ import annotations
 
 import os
